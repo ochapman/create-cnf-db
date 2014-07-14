@@ -76,7 +76,6 @@ func getPkgKeyBins(file string) (pkb chan PkgKeyBins, err error) {
 			if err != nil {
 				return
 			}
-			fmt.Println("PkgKeyBins", p)
 			pkb <- p
 		}
 	}()
@@ -93,7 +92,6 @@ func getBinPkg(file string, pkb chan PkgKeyBins) (bp chan BinPkg, err error) {
 	go func() {
 		defer close(bp)
 		for p := range pkb {
-			fmt.Println("p := <-pkb")
 			rows, err := db.Query("SELECT name FROM packages WHERE pkgKey=" + p.pkgKey + " AND arch !='i686';")
 			if err != nil {
 				return
@@ -102,9 +100,9 @@ func getBinPkg(file string, pkb chan PkgKeyBins) (bp chan BinPkg, err error) {
 				var b BinPkg
 				err = rows.Scan(&b.pkg)
 				if err != nil {
+					fmt.Println("row.Scan() failed", err)
 					return
 				}
-				//fmt.Println("BinPkg", b)
 				if b.pkg == "" {
 					continue
 				}
@@ -122,36 +120,32 @@ func getBinPkg(file string, pkb chan PkgKeyBins) (bp chan BinPkg, err error) {
 
 func (r *RepomdXml) BinPkg() (bp chan BinPkg, err error) {
 	var pkb chan PkgKeyBins
+	pkbUpdate := make(chan bool)
+	pbUpdate := make(chan bool)
 	for _, d := range r.Data {
-		if d.Type == "filelists_db" {
-			var file string
-			file, err = d.getDBFile(r.url)
-			if err != nil {
-				return
-			}
-			pkb, err = getPkgKeyBins(file)
-			if err != nil {
-				return
-			}
-			fmt.Println("getPkgKeyBins return")
+		switch d.Type {
+		case "filelists_db":
+			go func(d Data) {
+				file, err := d.getDBFile(r.url)
+				if err != nil {
+					return
+				}
+				pkb, err = getPkgKeyBins(file)
+				pkbUpdate <- true
+			}(d)
+		case "primary_db":
+			go func(d Data) {
+				file, err := d.getDBFile(r.url)
+				if err != nil {
+					return
+				}
+				<-pkbUpdate
+				bp, err = getBinPkg(file, pkb)
+				pbUpdate <- true
+			}(d)
 		}
 	}
-	for _, d := range r.Data {
-		if d.Type == "primary_db" {
-			fmt.Println("primary_db go func")
-			var file string
-			file, err = d.getDBFile(r.url)
-			if err != nil {
-				panic("d.getDBFile")
-				return
-			}
-			bp, err = getBinPkg(file, pkb)
-			if err != nil {
-				panic("getBinPkg")
-				return
-			}
-		}
-	}
+	<-pbUpdate
 	return
 }
 
@@ -181,6 +175,7 @@ func (r *RepomdXml) CreateCnfDB(bp <-chan BinPkg) (done chan bool, err error) {
 	*/
 	go func() {
 		wg.Add(1)
+		fmt.Println("CreateCnfDB(): go func()")
 		for b := range bp {
 			st := "insert INTO cmdpkg(cmd,pkg) values('" + b.bin + "','" + b.pkg + "');"
 			stmt, err := db.Prepare(st)
