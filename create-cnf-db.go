@@ -58,10 +58,6 @@ type PkgKeyBins struct {
 	bins   string
 }
 
-var g_pkb = make(chan PkgKeyBins)
-var g_bp = make(chan BinPkg)
-var g_done = make(chan bool)
-
 func getPkgKeyBins(file string) (pkb chan PkgKeyBins, err error) {
 	pkb = make(chan PkgKeyBins)
 	db, err := sql.Open("sqlite3", file)
