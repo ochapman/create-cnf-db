@@ -13,6 +13,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 )
 
 type Location struct {
@@ -243,8 +244,13 @@ func main() {
 	version := flag.String("version", "7", "version of distrobution")
 	arch := flag.String("arch", "x86_64", "arch of distrobution, x86_64 or i386")
 	dir := flag.String("dir", "database", "where DB saved")
+	timeprofile := flag.Bool("time", false, "time profile")
 
 	flag.Parse()
+	var t time.Time
+	if *timeprofile {
+		t = time.Now()
+	}
 	url := *mirror + "/centos/" + *version + "/os/" + *arch
 	repo, err := NewRepomd(url)
 	repo.dir = *dir
@@ -269,6 +275,9 @@ func main() {
 		select {
 		case <-done:
 			fmt.Println("OK, finished")
+			if *timeprofile {
+				fmt.Println("Total time: ", time.Since(t))
+			}
 			os.Exit(0)
 		}
 	}
