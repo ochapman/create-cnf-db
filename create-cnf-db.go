@@ -156,26 +156,22 @@ func (r *RepomdXml) CreateCnfDB(bp <-chan BinPkg) (done chan bool, err error) {
 	if err != nil {
 		return
 	}
-	/*
-		stmt, err := db.Prepare("CREATE TABLE cmdpkg(cmd TXT, pkg TXT, tips TXT);")
-		if err != nil {
-			fmt.Println("Prepare")
-			return
-		}
-		res, err := stmt.Exec()
-		if err != nil {
+	stmt, err := db.Prepare("CREATE TABLE cmdpkg(cmd TXT, pkg TXT, tips TXT);")
+	if err == nil {
+		res, e := stmt.Exec()
+		if e != nil {
 			fmt.Println("Exec()")
 			return
 		}
-		_, err = res.RowsAffected()
-		if err != nil {
+		_, e = res.RowsAffected()
+		if e != nil {
 			fmt.Println("RowsAffected()")
 			return
 		}
-	*/
+	}
+
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
-		fmt.Println("CreateCnfDB(): go func()")
 		for b := range bp {
 			st := "insert INTO cmdpkg(cmd,pkg) values('" + b.bin + "','" + b.pkg + "');"
 			stmt, err := db.Prepare(st)
@@ -198,7 +194,7 @@ func (r *RepomdXml) CreateCnfDB(bp <-chan BinPkg) (done chan bool, err error) {
 		wg.Wait()
 		done <- true
 	}()
-	return
+	return done, nil
 }
 
 // getDB() download and bunzip2
