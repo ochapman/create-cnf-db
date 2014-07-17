@@ -284,14 +284,10 @@ func main() {
 		os.Exit(-3)
 	}
 
-	for {
-		select {
-		case <-done:
-			fmt.Println("OK, finished")
-			if *timeprofile {
-				fmt.Println("Total time: ", time.Since(t))
-			}
-			return
-		}
+	<-done
+	fmt.Println("OK, finished")
+	if *timeprofile {
+		fmt.Println("Total time: ", time.Since(t))
 	}
+	return
 }
