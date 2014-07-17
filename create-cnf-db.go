@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"runtime/pprof"
 	"strings"
 	"sync"
 	"time"
@@ -247,12 +248,28 @@ func main() {
 	arch := flag.String("arch", "x86_64", "arch of distrobution, x86_64 or i386")
 	dir := flag.String("dir", "database", "where DB saved")
 	timeprofile := flag.Bool("time", false, "time profile")
+	cpuprofile := flag.String("cpu", "", "cpu profile")
 
 	flag.Parse()
 	var t time.Time
 	if *timeprofile {
 		t = time.Now()
 	}
+
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(-4)
+		}
+		err = pprof.StartCPUProfile(f)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(-5)
+		}
+		defer pprof.StopCPUProfile()
+	}
+
 	url := *mirror + "/centos/" + *version + "/os/" + *arch
 	repo, err := NewRepomd(url)
 	repo.dir = *dir
@@ -280,7 +297,7 @@ func main() {
 			if *timeprofile {
 				fmt.Println("Total time: ", time.Since(t))
 			}
-			os.Exit(0)
+			return
 		}
 	}
 }
