@@ -157,7 +157,8 @@ func (r *RepomdXml) BinPkg() (bp chan BinPkg, err error) {
 func (r *RepomdXml) CreateCnfDB(bp <-chan BinPkg) (done chan bool, err error) {
 	var wg sync.WaitGroup
 	done = make(chan bool)
-	db, err := sql.Open("sqlite3", "database/"+r.name+".sqlite")
+	tempsqlite := "/dev/shm/" + r.name + ".sqlite"
+	db, err := sql.Open("sqlite3", tempsqlite)
 	if err != nil {
 		return
 	}
@@ -188,6 +189,19 @@ func (r *RepomdXml) CreateCnfDB(bp <-chan BinPkg) (done chan bool, err error) {
 
 	go func() {
 		wg.Wait()
+		saved := r.dir + "/" + r.name + ".sqlite"
+		buf, err := ioutil.ReadFile(tempsqlite)
+		if err != nil {
+			panic("ioutil.ReadFile() failed")
+		}
+		err = ioutil.WriteFile(saved, buf, 0755)
+		if err != nil {
+			panic("ioutil.WriteFile() failed")
+		}
+		err = os.Remove(tempsqlite)
+		if err != nil {
+			panic("os.Remove() failed")
+		}
 		done <- true
 	}()
 	return done, nil
