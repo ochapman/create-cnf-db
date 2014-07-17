@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"runtime"
 	"runtime/pprof"
 	"strings"
 	"sync"
@@ -250,6 +251,8 @@ func main() {
 	timeprofile := flag.Bool("time", false, "time profile")
 	cpuprofile := flag.String("cpu", "", "cpu profile")
 
+	nr := runtime.NumCPU()
+	runtime.GOMAXPROCS(nr)
 	flag.Parse()
 	var t time.Time
 	if *timeprofile {
