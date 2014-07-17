@@ -163,14 +163,9 @@ func (r *RepomdXml) CreateCnfDB(bp <-chan BinPkg) (done chan bool, err error) {
 	}
 	stmt, err := db.Prepare("CREATE TABLE cmdpkg(cmd TXT, pkg TXT, tips TXT);")
 	if err == nil {
-		res, e := stmt.Exec()
+		_, e := stmt.Exec()
 		if e != nil {
 			fmt.Println("Exec()")
-			return
-		}
-		_, e = res.RowsAffected()
-		if e != nil {
-			fmt.Println("RowsAffected()")
 			return
 		}
 	}
@@ -183,11 +178,7 @@ func (r *RepomdXml) CreateCnfDB(bp <-chan BinPkg) (done chan bool, err error) {
 			if err != nil {
 				panic("m")
 			}
-			res, err := stmt.Exec()
-			if err != nil {
-				panic("m")
-			}
-			_, err = res.RowsAffected()
+			_, err = stmt.Exec()
 			if err != nil {
 				panic("m")
 			}
