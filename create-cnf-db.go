@@ -70,6 +70,7 @@ func getPkgKeyBins(file string) (pkb chan PkgKeyBins, err error) {
 		return
 	}
 	go func() {
+		defer os.Remove(file)
 		defer close(pkb)
 		for rows.Next() {
 			var p PkgKeyBins
@@ -91,6 +92,7 @@ func getBinPkg(file string, pkb chan PkgKeyBins) (bp chan BinPkg, err error) {
 	}
 
 	go func() {
+		defer os.Remove(file)
 		defer close(bp)
 		for p := range pkb {
 			rows, err := db.Query("SELECT name FROM packages WHERE pkgKey=" + p.pkgKey + " AND arch !='i686';")
@@ -212,7 +214,7 @@ func (d *Data) getDBFile(url string) (file string, err error) {
 	if err != nil {
 		return
 	}
-	f, err := ioutil.TempFile("", d.Type+".")
+	f, err := ioutil.TempFile("/dev/shm", d.Type+".")
 	if err != nil {
 		return
 	}
