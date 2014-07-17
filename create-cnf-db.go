@@ -73,6 +73,7 @@ func getPkgKeyBins(file string) (pkb chan PkgKeyBins, err error) {
 	}
 	go func() {
 		defer os.Remove(file)
+		defer db.Close()
 		defer close(pkb)
 		for rows.Next() {
 			var p PkgKeyBins
@@ -95,6 +96,7 @@ func getBinPkg(file string, pkb chan PkgKeyBins) (bp chan BinPkg, err error) {
 
 	go func() {
 		defer os.Remove(file)
+		defer db.Close()
 		defer close(bp)
 		for p := range pkb {
 			rows, err := db.Query("SELECT name FROM packages WHERE pkgKey=" + p.pkgKey + " AND arch !='i686';")
@@ -189,6 +191,7 @@ func (r *RepomdXml) CreateCnfDB(bp <-chan BinPkg) (done chan bool, err error) {
 
 	go func() {
 		wg.Wait()
+		db.Close()
 		saved := r.dir + "/" + r.name + ".sqlite"
 		buf, err := ioutil.ReadFile(tempsqlite)
 		if err != nil {
