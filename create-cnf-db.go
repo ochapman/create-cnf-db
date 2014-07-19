@@ -194,18 +194,20 @@ func (r *RepomdXml) CreateCnfDB(bp <-chan BinPkg) (done chan bool, err error) {
 		wg.Wait()
 		db.Close()
 		saved := r.dir + "/" + r.name + ".sqlite"
-		buf, err := ioutil.ReadFile(tempsqlite)
+		sf, err := os.Open(tempsqlite)
 		if err != nil {
-			panic("ioutil.ReadFile() failed")
+			panic("os.Open() failed")
 		}
-		err = ioutil.WriteFile(saved, buf, 0755)
+		defer sf.Close()
+		df, err := os.OpenFile(saved, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
-			panic("ioutil.WriteFile() failed")
+			panic("os.OpenFile() failed")
 		}
-		err = os.Remove(tempsqlite)
-		if err != nil {
-			panic("os.Remove() failed")
+		if _, err = io.Copy(df, sf); err != nil {
+			panic("io.Copy() failed")
 		}
+		defer df.Close()
+		defer os.Remove(tempsqlite)
 		done <- true
 	}()
 	return done, nil
