@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -213,28 +214,20 @@ func (r *RepomdXml) CreateCnfDB(bp <-chan BinPkg) (done chan bool, err error) {
 // getDB() download and bunzip2
 func (d *Data) getDBFile(url string) (file string, err error) {
 	u := url + "/" + d.Location.Href
-	fmt.Println("u", u, d)
 	resp, err := http.Get(u)
 	if err != nil {
 		return
 	}
-	fmt.Println("bzip2", url)
 	reader := bzip2.NewReader(resp.Body)
-	buf, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return
-	}
 	f, err := ioutil.TempFile("/dev/shm", d.Type+".")
 	if err != nil {
 		return
 	}
-	file = f.Name()
-	err = ioutil.WriteFile(file, buf, 0644)
-	if err != nil {
+	if _, err = io.Copy(f, reader); err != nil {
 		return
 	}
-	fmt.Println("ioutil.WriteFile()", file)
-	return
+	defer f.Close()
+	return f.Name(), nil
 }
 
 func NewRepomd(url string) (repo *RepomdXml, err error) {
