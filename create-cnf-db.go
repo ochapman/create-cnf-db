@@ -232,7 +232,7 @@ func (d *Data) getDBFile(url string) (file string, err error) {
 	return f.Name(), nil
 }
 
-func NewRepomd(url string) (repo *RepomdXml, err error) {
+func NewRepomd(url string) (rx *RepomdXml, err error) {
 	if url == "" {
 		return nil, errors.New("url not specified")
 	}
@@ -241,8 +241,8 @@ func NewRepomd(url string) (repo *RepomdXml, err error) {
 	if err != nil {
 		return
 	}
-	repo = new(RepomdXml)
-	err = xml.NewDecoder(resp.Body).Decode(repo)
+	rx = new(RepomdXml)
+	err = xml.NewDecoder(resp.Body).Decode(rx)
 	return
 }
 
@@ -251,6 +251,7 @@ func main() {
 	version := flag.String("version", "7", "version of distrobution")
 	arch := flag.String("arch", "x86_64", "arch of distrobution, x86_64 or i386")
 	dir := flag.String("dir", "database", "where DB saved")
+	repo := flag.String("repo", "os", "repository, such as os, extras, centosplus...")
 	timeprofile := flag.Bool("time", false, "time profile")
 	cpuprofile := flag.String("cpu", "", "cpu profile")
 
@@ -276,21 +277,21 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	url := *mirror + "/centos/" + *version + "/os/" + *arch
-	repo, err := NewRepomd(url)
-	repo.dir = *dir
-	repo.url = url
-	repo.name = "os"
+	url := *mirror + "/centos/" + *version + "/" + *repo + "/" + *arch
+	repomd, err := NewRepomd(url)
+	repomd.dir = *dir
+	repomd.url = url
+	repomd.name = *repo
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(-1)
 	}
-	bp, err := repo.BinPkg()
+	bp, err := repomd.BinPkg()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(-2)
 	}
-	done, err := repo.CreateCnfDB(bp)
+	done, err := repomd.CreateCnfDB(bp)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(-3)
