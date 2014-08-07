@@ -247,11 +247,13 @@ func NewRepomd(url string) (rx *RepomdXml, err error) {
 }
 
 func main() {
+	var url string
 	mirror := flag.String("mirror", "http://mirrors.sohu.com", "mirror of package server")
 	version := flag.String("version", "7", "version of distrobution")
 	arch := flag.String("arch", "x86_64", "arch of distrobution, x86_64 or i386")
 	dir := flag.String("dir", "database", "where DB saved")
 	repo := flag.String("repo", "os", "repository, such as os, extras, centosplus...")
+	repodata := flag.String("repodata", "", "repodata url")
 	timeprofile := flag.Bool("time", false, "time profile")
 	cpuprofile := flag.String("cpu", "", "cpu profile")
 
@@ -276,9 +278,16 @@ func main() {
 		}
 		defer pprof.StopCPUProfile()
 	}
-
-	url := *mirror + "/centos/" + *version + "/" + *repo + "/" + *arch
+	if *repodata != "" {
+		url = *repodata
+	} else {
+		url = *mirror + "/centos/" + *version + "/" + *repo + "/" + *arch
+	}
 	repomd, err := NewRepomd(url)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(-1)
+	}
 	repomd.dir = *dir
 	repomd.url = url
 	repomd.name = *repo
